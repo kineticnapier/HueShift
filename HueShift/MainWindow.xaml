@@ -141,13 +141,14 @@
                 <GroupBox.BorderBrush>
                     <SolidColorBrush Color="#FFAAAAAA"/>
                 </GroupBox.BorderBrush>
-                <StackPanel Orientation="Horizontal">
+                <StackPanel>
                     <Rectangle x:Name="GrayscaleColorRect"
                                Width="60" Height="60"
                                Fill="White"
                                Stroke="Black"
-                               Margin="0,0,12,0"/>
-                    <StackPanel VerticalAlignment="Center">
+                               Margin="0,0,0,6"
+                               HorizontalAlignment="Left"/>
+                    <StackPanel>
                         <TextBlock x:Name="GrayscaleColorHex"
                                    Text="HEX: "
                                    Foreground="White"
