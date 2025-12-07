@@ -116,39 +116,13 @@ namespace HueShift
             }
 
             string[] rgbParts = normalized.Split(new char[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            // HEX形式の判定 (例: #RRGGBB または RRGGBB)
-            if (code.StartsWith("#") || code.Length == 6 || code.Length == 7)
-            {
-                string hex = code.StartsWith("#") ? code[1..] : code;
-
-                if (hex.Length != 6)
-                {
-                    throw new ArgumentException("HEXコードは6桁で指定してください。");
-                }
-
-                try
-                {
-                    byte rHex = Convert.ToByte(hex[0..2], 16);
-                    byte gHex = Convert.ToByte(hex[2..4], 16);
-                    byte bHex = Convert.ToByte(hex[4..6], 16);
-
-                    return Color.FromRgb(rHex, gHex, bHex);
-                }
-                catch (FormatException)
-                {
-                    throw new ArgumentException("HEXコードの形式が不正です。");
-                }
-            }
-
-            // RGB形式 (例: 255,0,0)
-            string[] rgbParts = code.Split(new char[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
             if (rgbParts.Length == 3 &&
                 byte.TryParse(rgbParts[0], out byte red) &&
                 byte.TryParse(rgbParts[1], out byte green) &&
                 byte.TryParse(rgbParts[2], out byte blue))
             {
                 color = Color.FromRgb(red, green, blue);
-                return Color.FromRgb(red, green, blue);
+                return true;
             }
 
             return false;
