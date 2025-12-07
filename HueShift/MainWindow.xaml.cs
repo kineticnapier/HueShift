@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
+using System.Text.RegularExpressions;
 
 namespace HueShift
 {
@@ -78,6 +79,43 @@ namespace HueShift
             if (string.IsNullOrWhiteSpace(code))
                 throw new ArgumentException("入力が空です。");
 
+            string trimmed = code.Trim();
+
+            // RGB形式 (例: 255,0,0 または rgb(255,0,0))
+            if (TryParseRgb(trimmed, out Color rgbColor))
+            {
+                return rgbColor;
+            }
+
+            // HEX形式の判定 (例: #RRGGBB または RRGGBB)
+            if (TryParseHex(trimmed, out Color hexColor))
+            {
+                return hexColor;
+            }
+
+            throw new ArgumentException("サポートされていない形式、または不正な値です。");
+        }
+
+        /// <summary>
+        /// RGB表記を Color オブジェクトに変換します。"rgb(…)"のラッパーも許容します。
+        /// </summary>
+        private static bool TryParseRgb(string input, out Color color)
+        {
+            color = default;
+
+            string normalized = input;
+            if (input.StartsWith("rgb", StringComparison.OrdinalIgnoreCase))
+            {
+                int start = input.IndexOf('(');
+                int end = input.LastIndexOf(')');
+
+                if (start >= 0 && end > start)
+                {
+                    normalized = input[(start + 1)..end];
+                }
+            }
+
+            string[] rgbParts = normalized.Split(new char[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
             // HEX形式の判定 (例: #RRGGBB または RRGGBB)
             if (code.StartsWith("#") || code.Length == 6 || code.Length == 7)
             {
@@ -109,10 +147,59 @@ namespace HueShift
                 byte.TryParse(rgbParts[1], out byte green) &&
                 byte.TryParse(rgbParts[2], out byte blue))
             {
+                color = Color.FromRgb(red, green, blue);
                 return Color.FromRgb(red, green, blue);
             }
 
-            throw new ArgumentException("サポートされていない形式、または不正な値です。");
+            return false;
+        }
+
+        /// <summary>
+        /// HEX表記を Color オブジェクトに変換します。#付き/なしの6桁のみを受け付けます。
+        /// </summary>
+        private static bool TryParseHex(string input, out Color color)
+        {
+            color = default;
+
+            Match match = Regex.Match(input, "^#?[0-9A-Fa-f]{6}$");
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            string hex = input.StartsWith("#") ? input[1..] : input;
+
+            if (!IsHexString(hex))
+            {
+                throw new ArgumentException("HEXコードは0-9とA-Fの組み合わせで指定してください。");
+            }
+
+            byte rHex = Convert.ToByte(hex[0..2], 16);
+            byte gHex = Convert.ToByte(hex[2..4], 16);
+            byte bHex = Convert.ToByte(hex[4..6], 16);
+
+            color = Color.FromRgb(rHex, gHex, bHex);
+            return true;
+        }
+
+        /// <summary>
+        /// 文字列がHEX表記に使える文字だけで構成されているかを判定します。
+        /// </summary>
+        private static bool IsHexString(string value)
+        {
+            foreach (char c in value)
+            {
+                bool isHexDigit = (c >= '0' && c <= '9') ||
+                                  (c >= 'A' && c <= 'F') ||
+                                  (c >= 'a' && c <= 'f');
+
+                if (!isHexDigit)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
