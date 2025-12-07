@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Media;
 
@@ -6,19 +6,24 @@ namespace HueShift
 {
     public partial class MainWindow : Window
     {
+        private const string DefaultColorCode = "#1E90FF";
+
         public MainWindow()
         {
             InitializeComponent();
-            // 起動時に一度計算を実行
-            CalculateColor("#1E90FF");
+            // アプリ起動時に初期値で一度計算を実行する
+            CalculateColor(DefaultColorCode);
         }
 
         private void CalculateButton_Click(object sender, RoutedEventArgs e)
         {
-            string input = InputColorTextBox.Text.Trim();
-            CalculateColor(input);
+            string colorInput = InputColorTextBox.Text.Trim();
+            CalculateColor(colorInput);
         }
 
+        /// <summary>
+        /// 入力された色コードを解析し、各変換結果をUIへ反映します。
+        /// </summary>
         private void CalculateColor(string input)
         {
             Color originalColor;
@@ -54,6 +59,15 @@ namespace HueShift
                 InvertColorHex,
                 InvertColorRgb
             );
+
+            // 5. グレースケールを計算・表示
+            Color grayscaleColor = ColorConverter.GetGrayscaleColor(originalColor);
+            UpdateResultColor(
+                grayscaleColor,
+                GrayscaleColorRect,
+                GrayscaleColorHex,
+                GrayscaleColorRgb
+            );
         }
 
         /// <summary>
@@ -64,36 +78,38 @@ namespace HueShift
             if (string.IsNullOrWhiteSpace(code))
                 throw new ArgumentException("入力が空です。");
 
-            if (code.StartsWith("#") || code.Length == 6 || code.Length == 7) // 例: #RRGGBB
+            // HEX形式の判定 (例: #RRGGBB または RRGGBB)
+            if (code.StartsWith("#") || code.Length == 6 || code.Length == 7)
             {
-                string hex = code.StartsWith("#") ? code[1..] : code; // IDE0057: Substring の簡素化
+                string hex = code.StartsWith("#") ? code[1..] : code;
 
-                // 6桁のHEXコード (RRGGBB) のみを処理
-                if (hex.Length == 6)
+                if (hex.Length != 6)
                 {
-                    try
-                    {
-                        byte rHex = Convert.ToByte(hex[0..2], 16);
-                        byte gHex = Convert.ToByte(hex[2..4], 16);
-                        byte bHex = Convert.ToByte(hex[4..6], 16);
+                    throw new ArgumentException("HEXコードは6桁で指定してください。");
+                }
 
-                        return Color.FromRgb(rHex, gHex, bHex);
-                    }
-                    catch (FormatException)
-                    {
-                        throw new ArgumentException("HEXコードの形式が不正です。");
-                    }
+                try
+                {
+                    byte rHex = Convert.ToByte(hex[0..2], 16);
+                    byte gHex = Convert.ToByte(hex[2..4], 16);
+                    byte bHex = Convert.ToByte(hex[4..6], 16);
+
+                    return Color.FromRgb(rHex, gHex, bHex);
+                }
+                catch (FormatException)
+                {
+                    throw new ArgumentException("HEXコードの形式が不正です。");
                 }
             }
 
             // RGB形式 (例: 255,0,0)
-            string[] parts = code.Split(new char[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 3 &&
-                byte.TryParse(parts[0], out byte r) &&
-                byte.TryParse(parts[1], out byte g) &&
-                byte.TryParse(parts[2], out byte b))
+            string[] rgbParts = code.Split(new char[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (rgbParts.Length == 3 &&
+                byte.TryParse(rgbParts[0], out byte red) &&
+                byte.TryParse(rgbParts[1], out byte green) &&
+                byte.TryParse(rgbParts[2], out byte blue))
             {
-                return Color.FromRgb(r, g, b);
+                return Color.FromRgb(red, green, blue);
             }
 
             throw new ArgumentException("サポートされていない形式、または不正な値です。");
@@ -105,8 +121,8 @@ namespace HueShift
         private void UpdateOriginalColor(Color color)
         {
             OriginalColorRect.Fill = new SolidColorBrush(color);
-            OriginalColorHex.Text = $"HEX: #{color.R:X2}{color.G:X2}{color.B:X2}";
-            OriginalColorRgb.Text = $"RGB: ({color.R}, {color.G}, {color.B})";
+            OriginalColorHex.Text = FormatHex(color);
+            OriginalColorRgb.Text = FormatRgb(color);
         }
 
         /// <summary>
@@ -115,8 +131,24 @@ namespace HueShift
         private void UpdateResultColor(Color color, System.Windows.Shapes.Rectangle rect, System.Windows.Controls.TextBlock hexText, System.Windows.Controls.TextBlock rgbText)
         {
             rect.Fill = new SolidColorBrush(color);
-            hexText.Text = $"HEX: #{color.R:X2}{color.G:X2}{color.B:X2}";
-            rgbText.Text = $"RGB: ({color.R}, {color.G}, {color.B})";
+            hexText.Text = FormatHex(color);
+            rgbText.Text = FormatRgb(color);
+        }
+
+        /// <summary>
+        /// 色をHEX表記の文字列に整形します。
+        /// </summary>
+        private static string FormatHex(Color color)
+        {
+            return $"HEX: #{color.R:X2}{color.G:X2}{color.B:X2}";
+        }
+
+        /// <summary>
+        /// 色をRGB表記の文字列に整形します。
+        /// </summary>
+        private static string FormatRgb(Color color)
+        {
+            return $"RGB: ({color.R}, {color.G}, {color.B})";
         }
     }
 }
